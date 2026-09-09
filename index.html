@@ -8,6 +8,65 @@
     <link rel="stylesheet" href="TemplateData/style.css">
   </head>
   <body>
+    <style>
+      #sf-diag-button{position:fixed;right:8px;top:8px;z-index:10001;padding:8px 12px;border:0;border-radius:6px;background:#123a78;color:#fff;font-weight:bold}
+      #sf-diag-panel{display:none;position:fixed;z-index:10000;right:8px;top:48px;width:min(92vw,560px);max-height:78vh;overflow:auto;background:#fff;color:#111;border:2px solid #123a78;border-radius:8px;padding:12px;font:13px/1.45 monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+      #sf-diag-panel button{margin:8px 8px 0 0;padding:7px 10px}
+    </style>
+    <button id="sf-diag-button" type="button">診断</button>
+    <div id="sf-diag-panel"><div id="sf-diag-text">診断準備中</div><button id="sf-diag-copy" type="button">診断をコピー</button><button id="sf-diag-close" type="button">閉じる</button></div>
+    <script>
+      (function(){
+        var BUILD_ID="20260909074147",events=[],phase="HTML loaded",lastError="なし";
+        function cut(v,n){v=String(v==null?"":v);return v.length>n?v.slice(0,n)+"…":v;}
+        function errorText(value){
+          try{
+            var type=typeof value,out="type="+type;
+            if(type==="number"&&Number.isFinite(value))out+=" value="+value+" hex=0x"+(value>>>0).toString(16);
+            else out+=" value="+cut(value&&value.message?value.message:value,1024);
+            if(value&&value.name)out+=" name="+cut(value.name,128);
+            if(value&&value.stack)out+="\nstack="+cut(value.stack,4096);
+            return out;
+          }catch(e){return "診断中の例外: "+String(e);}
+        }
+        function inspectSlot(slot){
+          var prefix="slamfive.snapshot.v3.slot"+slot+".",lines=[];
+          ["generation","current","backup"].forEach(function(kind){
+            try{
+              var raw=localStorage.getItem(prefix+kind);
+              if(raw===null){lines.push("  "+kind+": なし");return;}
+              if(kind==="generation"){var parsed=Number(raw);lines.push("  generation: "+(Number.isInteger(parsed)&&parsed>0?parsed:"整数解析失敗 ("+cut(raw,40)+")"));return;}
+              var env=JSON.parse(raw),payload=null,payloadOk=false;
+              try{payload=JSON.parse(env.payloadJson);payloadOk=true;}catch(ignore){}
+              var day=payloadOk&&payload.progress?payload.progress.gameDay:"?";
+              var members=payloadOk&&payload.roster&&Array.isArray(payload.roster.confirmedRecruitNames)?payload.roster.confirmedRecruitNames.length:"?";
+              lines.push("  "+kind+": あり chars="+raw.length+" envelope=JSON解析成功 schema="+env.schemaVersion+" slot="+env.slotId+" gen="+env.generation+" rev="+env.revision+" payload="+(payloadOk?"JSON解析成功":"解析失敗")+" day="+day+" 仲間="+members+" checksum=未検証");
+            }catch(e){lines.push("  "+kind+": あり 解析失敗 "+cut(e,300));}
+          });
+          return "SLOT "+slot+"\n"+lines.join("\n");
+        }
+        function report(){
+          try{
+            var text=["SlamFive Web診断","Build: "+BUILD_ID,"URL: "+location.href,"端末: "+navigator.userAgent,"Phase: "+phase,"Last error: "+lastError,inspectSlot(1),inspectSlot(2),inspectSlot(3),"Events:",events.join("\n")].join("\n");
+            var node=document.getElementById("sf-diag-text");if(node)node.textContent=cut(text,24000);return cut(text,24000);
+          }catch(e){return "診断表示失敗: "+String(e);}
+        }
+        function mark(next,detail){try{phase=next;events.push(new Date().toISOString()+" "+next+(detail?" | "+cut(detail,4096):""));if(events.length>20)events.shift();report();}catch(ignore){}}
+        function capture(value,where){try{lastError=where+": "+errorText(value);mark("ERROR "+where,lastError);}catch(ignore){}}
+        window.SlamFiveDiagnostics={mark:mark,capture:capture,report:report};
+        window.addEventListener("error",function(e){capture(e.error||e.message,"window.error "+(e.filename||"")+":"+(e.lineno||0));},true);
+        window.addEventListener("unhandledrejection",function(e){capture(e.reason,"unhandledrejection");},true);
+        document.addEventListener("DOMContentLoaded",function(){
+          try{
+            var button=document.getElementById("sf-diag-button"),panel=document.getElementById("sf-diag-panel");
+            button.onclick=function(){report();panel.style.display="block";};
+            document.getElementById("sf-diag-close").onclick=function(){panel.style.display="none";};
+            document.getElementById("sf-diag-copy").onclick=function(){var text=report();if(navigator.clipboard)navigator.clipboard.writeText(text).catch(function(){});};
+            report();
+          }catch(ignore){}
+        });
+      })();
+    </script>
     <div id="unity-container" class="unity-desktop">
       <canvas id="unity-canvas" width=960 height=600 tabindex="-1"></canvas>
       <div id="unity-loading-bar">
@@ -52,7 +111,7 @@
       }
 
       var buildUrl = "Build";
-      var buildVersion = "20260909065429";
+      var buildVersion = "20260909074147";
       var loaderUrl = buildUrl + "/WebGL.loader.js?v=" + buildVersion;
       var config = {
         arguments: [],
@@ -113,20 +172,26 @@
 
       var script = document.createElement("script");
       script.src = loaderUrl;
+      SlamFiveDiagnostics.mark("loader requested", loaderUrl);
       script.onload = () => {
+        SlamFiveDiagnostics.mark("loader loaded");
+        SlamFiveDiagnostics.mark("createUnityInstance started");
         createUnityInstance(canvas, config, (progress) => {
           document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
               }).then((unityInstance) => {
+                SlamFiveDiagnostics.mark("Unity started");
                 document.querySelector("#unity-loading-bar").style.display = "none";
                 document.querySelector("#unity-fullscreen-button").onclick = () => {
                   unityInstance.SetFullscreen(1);
                 };
 
               }).catch((message) => {
-                alert(message);
+                SlamFiveDiagnostics.capture(message, "createUnityInstance.catch");
+                document.querySelector("#sf-diag-panel").style.display = "block";
               });
             };
 
+      script.onerror = (event) => { SlamFiveDiagnostics.capture(event, "loader script error"); document.querySelector("#sf-diag-panel").style.display = "block"; };
       document.body.appendChild(script);
 
     </script>
