@@ -17,7 +17,7 @@
     <div id="sf-diag-panel"><div id="sf-diag-text">診断準備中</div><button id="sf-diag-copy" type="button">診断をコピー</button><button id="sf-diag-close" type="button">閉じる</button></div>
     <script>
       (function(){
-        var BUILD_ID="20260909074147",events=[],phase="HTML loaded",lastError="なし";
+        var BUILD_ID="20260909105145",events=[],phase="HTML loaded",lastError="なし";
         function cut(v,n){v=String(v==null?"":v);return v.length>n?v.slice(0,n)+"…":v;}
         function errorText(value){
           try{
@@ -30,19 +30,21 @@
           }catch(e){return "診断中の例外: "+String(e);}
         }
         function inspectSlot(slot){
-          var prefix="slamfive.snapshot.v3.slot"+slot+".",lines=[];
-          ["generation","current","backup"].forEach(function(kind){
-            try{
-              var raw=localStorage.getItem(prefix+kind);
-              if(raw===null){lines.push("  "+kind+": なし");return;}
-              if(kind==="generation"){var parsed=Number(raw);lines.push("  generation: "+(Number.isInteger(parsed)&&parsed>0?parsed:"整数解析失敗 ("+cut(raw,40)+")"));return;}
-              var env=JSON.parse(raw),payload=null,payloadOk=false;
-              try{payload=JSON.parse(env.payloadJson);payloadOk=true;}catch(ignore){}
-              var day=payloadOk&&payload.progress?payload.progress.gameDay:"?";
-              var members=payloadOk&&payload.roster&&Array.isArray(payload.roster.confirmedRecruitNames)?payload.roster.confirmedRecruitNames.length:"?";
-              lines.push("  "+kind+": あり chars="+raw.length+" envelope=JSON解析成功 schema="+env.schemaVersion+" slot="+env.slotId+" gen="+env.generation+" rev="+env.revision+" payload="+(payloadOk?"JSON解析成功":"解析失敗")+" day="+day+" 仲間="+members+" checksum=未検証");
-            }catch(e){lines.push("  "+kind+": あり 解析失敗 "+cut(e,300));}
-          });
+          var key="slamfive.snapshot.v4.slot"+slot,lines=[];
+          try{
+            var raw=localStorage.getItem(key);if(raw===null)return "SLOT "+slot+"\n  v4: なし（v3は隔離）";
+            var record=JSON.parse(raw);
+            lines.push("  state="+record.state+" schema="+record.schemaVersion+" gen="+record.generation+" chars="+raw.length);
+            lines.push("  最初: "+record.generationCreatedAtUtc+" build="+record.generationCreatedByBuildId+" reason="+record.generationCreatedReason);
+            ["currentJson","backupJson"].forEach(function(kind){
+              if(!record[kind]){lines.push("  "+kind+": なし");return;}
+              var env=JSON.parse(record[kind]),payload=JSON.parse(env.payloadJson),day=payload.progress?payload.progress.gameDay:"?";
+              var members=payload.roster&&Array.isArray(payload.roster.confirmedRecruitNames)?payload.roster.confirmedRecruitNames.length:"?";
+              var name=payload.profile&&payload.profile.playerName?String(payload.profile.playerName):"";
+              var masked=name?name.slice(0,1)+"***":"未設定";
+              lines.push("  "+kind+": 最終="+env.savedAtUtc+" build="+env.buildId+" reason="+env.writeReason+" rev="+env.revision+" day="+day+" 仲間="+members+" 名前="+masked+" checksum="+(env.checksum?"あり（Unity検証対象）":"なし"));
+            });
+          }catch(e){lines.push("  v4: あり 解析失敗 "+cut(e,300));}
           return "SLOT "+slot+"\n"+lines.join("\n");
         }
         function report(){
@@ -111,7 +113,7 @@
       }
 
       var buildUrl = "Build";
-      var buildVersion = "20260909074147";
+      var buildVersion = "20260909105145";
       var loaderUrl = buildUrl + "/WebGL.loader.js?v=" + buildVersion;
       var config = {
         arguments: [],
@@ -121,7 +123,7 @@
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "SlamFive",
-        productVersion: "1.0",
+        productVersion: "20260909105145",
         showBanner: unityShowBanner,
         // errorHandler: function(err, url, line) {
         //    alert("error " + err + " occurred at line " + line);
