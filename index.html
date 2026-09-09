@@ -17,7 +17,7 @@
     <div id="sf-diag-panel"><div id="sf-diag-text">診断準備中</div><button id="sf-diag-copy" type="button">診断をコピー</button><button id="sf-diag-close" type="button">閉じる</button></div>
     <script>
       (function(){
-        var BUILD_ID="20260909105145",events=[],phase="HTML loaded",lastError="なし";
+        var BUILD_ID="20260909225904",events=[],phase="HTML loaded",lastError="なし";
         function cut(v,n){v=String(v==null?"":v);return v.length>n?v.slice(0,n)+"…":v;}
         function errorText(value){
           try{
@@ -50,10 +50,10 @@
         function report(){
           try{
             var text=["SlamFive Web診断","Build: "+BUILD_ID,"URL: "+location.href,"端末: "+navigator.userAgent,"Phase: "+phase,"Last error: "+lastError,inspectSlot(1),inspectSlot(2),inspectSlot(3),"Events:",events.join("\n")].join("\n");
-            var node=document.getElementById("sf-diag-text");if(node)node.textContent=cut(text,24000);return cut(text,24000);
+            var node=document.getElementById("sf-diag-text");if(node)node.textContent=cut(text,64000);return cut(text,64000);
           }catch(e){return "診断表示失敗: "+String(e);}
         }
-        function mark(next,detail){try{phase=next;events.push(new Date().toISOString()+" "+next+(detail?" | "+cut(detail,4096):""));if(events.length>20)events.shift();report();}catch(ignore){}}
+        function mark(next,detail){try{phase=next;events.push(new Date().toISOString()+" "+next+(detail?" | "+cut(detail,4096):""));if(events.length>200)events.shift();report();}catch(ignore){}}
         function capture(value,where){try{lastError=where+": "+errorText(value);mark("ERROR "+where,lastError);}catch(ignore){}}
         window.SlamFiveDiagnostics={mark:mark,capture:capture,report:report};
         window.addEventListener("error",function(e){capture(e.error||e.message,"window.error "+(e.filename||"")+":"+(e.lineno||0));},true);
@@ -113,7 +113,7 @@
       }
 
       var buildUrl = "Build";
-      var buildVersion = "20260909105145";
+      var buildVersion = "20260909225904";
       var loaderUrl = buildUrl + "/WebGL.loader.js?v=" + buildVersion;
       var config = {
         arguments: [],
@@ -123,7 +123,7 @@
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "SlamFive",
-        productVersion: "20260909105145",
+        productVersion: "20260909225904",
         showBanner: unityShowBanner,
         // errorHandler: function(err, url, line) {
         //    alert("error " + err + " occurred at line " + line);
