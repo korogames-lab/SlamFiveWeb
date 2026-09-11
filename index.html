@@ -17,7 +17,24 @@
     <div id="sf-diag-panel"><div id="sf-diag-text">診断準備中</div><button id="sf-diag-copy" type="button">診断をコピー</button><button id="sf-diag-close" type="button">閉じる</button></div>
     <script>
       (function(){
-        var BUILD_ID="20260910101221",events=[],phase="HTML loaded",lastError="なし";
+        var BUILD_ID="20260911001314",events=[],phase="HTML loaded",lastError="なし";
+        // Unity Webの内部ミキサーは44.1kHz基準だが、iPhone SafariはAudioContextを
+        // 48kHzで生成する場合がある。復帰・回転後に両者がずれるとBGM/SEがまとめて
+        // 約1.09倍速になるため、UnityがAudioContextを作る前に44.1kHzへ固定する。
+        var isiOS=/iPhone|iPad|iPod/i.test(navigator.userAgent)||
+          (/Macintosh/i.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
+        if(isiOS){
+          var NativeAudioContext=window.AudioContext||window.webkitAudioContext;
+          if(NativeAudioContext){
+            var FixedAudioContext=function(){
+              try{return new NativeAudioContext({sampleRate:44100});}
+              catch(ignore){return new NativeAudioContext();}
+            };
+            FixedAudioContext.prototype=NativeAudioContext.prototype;
+            window.AudioContext=FixedAudioContext;
+            window.webkitAudioContext=FixedAudioContext;
+          }
+        }
         function cut(v,n){v=String(v==null?"":v);return v.length>n?v.slice(0,n)+"…":v;}
         function errorText(value){
           try{
@@ -47,9 +64,15 @@
           }catch(e){lines.push("  v4: あり 解析失敗 "+cut(e,300));}
           return "SLOT "+slot+"\n"+lines.join("\n");
         }
+        function audioState(){
+          try{
+            var context=typeof WEBAudio!=="undefined"?WEBAudio.audioContext:null;
+            return context?"Audio: rate="+context.sampleRate+" state="+context.state:"Audio: 未初期化";
+          }catch(ignore){return "Audio: 取得失敗";}
+        }
         function report(){
           try{
-            var text=["SlamFive Web診断","Build: "+BUILD_ID,"URL: "+location.href,"端末: "+navigator.userAgent,"Phase: "+phase,"Last error: "+lastError,inspectSlot(1),inspectSlot(2),inspectSlot(3),"Events:",events.join("\n")].join("\n");
+            var text=["SlamFive Web診断","Build: "+BUILD_ID,"URL: "+location.href,"端末: "+navigator.userAgent,"Phase: "+phase,"Last error: "+lastError,audioState(),inspectSlot(1),inspectSlot(2),inspectSlot(3),"Events:",events.join("\n")].join("\n");
             var node=document.getElementById("sf-diag-text");if(node)node.textContent=cut(text,64000);return cut(text,64000);
           }catch(e){return "診断表示失敗: "+String(e);}
         }
@@ -113,7 +136,7 @@
       }
 
       var buildUrl = "Build";
-      var buildVersion = "20260910101221";
+      var buildVersion = "20260911001314";
       var loaderUrl = buildUrl + "/WebGL.loader.js?v=" + buildVersion;
       var config = {
         arguments: [],
@@ -123,7 +146,7 @@
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "SlamFive",
-        productVersion: "20260910101221",
+        productVersion: "20260911001314",
         showBanner: unityShowBanner,
         // errorHandler: function(err, url, line) {
         //    alert("error " + err + " occurred at line " + line);
