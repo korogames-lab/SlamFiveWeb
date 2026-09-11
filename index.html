@@ -17,7 +17,7 @@
     <div id="sf-diag-panel"><div id="sf-diag-text">診断準備中</div><button id="sf-diag-copy" type="button">診断をコピー</button><button id="sf-diag-close" type="button">閉じる</button></div>
     <script>
       (function(){
-        var BUILD_ID="20260911025121",events=[],phase="HTML loaded",lastError="なし";
+        var BUILD_ID="20260911121451",events=[],phase="HTML loaded",lastError="なし";
         // Unity Webの内部ミキサーは44.1kHz基準だが、iPhone SafariはAudioContextを
         // 48kHzで生成する場合がある。復帰・回転後に両者がずれるとBGM/SEがまとめて
         // 約1.09倍速になるため、UnityがAudioContextを作る前に44.1kHzへ固定する。
@@ -136,7 +136,7 @@
       }
 
       var buildUrl = "Build";
-      var buildVersion = "20260911025121";
+      var buildVersion = "20260911121451";
       var loaderUrl = buildUrl + "/WebGL.loader.js?v=" + buildVersion;
       var config = {
         arguments: [],
@@ -146,7 +146,7 @@
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "SlamFive",
-        productVersion: "20260911025121",
+        productVersion: "20260911121451",
         showBanner: unityShowBanner,
         // errorHandler: function(err, url, line) {
         //    alert("error " + err + " occurred at line " + line);
